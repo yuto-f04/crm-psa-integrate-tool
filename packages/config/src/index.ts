@@ -110,6 +110,24 @@ export const loadConfig = (overrides: Partial<Record<keyof AppEnv, string>> = {}
 
   loadEnv();
   const merged = { ...process.env, ...overrides } as Record<string, string>;
+  const rawAppEnv = (merged.APP_ENV ?? "").toLowerCase();
+  const rawNodeEnv = (merged.NODE_ENV ?? "").toLowerCase();
+  const isDevMode = rawAppEnv === "local" || rawNodeEnv === "development";
+
+  if (isDevMode) {
+    const devDefaults: Record<keyof Pick<AppEnv, "API_BASE_URL" | "APP_BASE_URL" | "AUTH_JWT_SECRET">, string> = {
+      API_BASE_URL: "http://localhost:4000",
+      APP_BASE_URL: "http://localhost:3000",
+      AUTH_JWT_SECRET: "dev-secret-change-me"
+    };
+    for (const [key, value] of Object.entries(devDefaults)) {
+      if (!merged[key]) {
+        console.warn(`[config] ${key} is missing. Using development default "${value}".`);
+        merged[key] = value;
+      }
+    }
+  }
+
   const parsed = envSchema.safeParse(merged);
   if (!parsed.success) {
     const formatted = parsed.error.errors

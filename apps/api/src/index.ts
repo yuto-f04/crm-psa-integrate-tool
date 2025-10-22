@@ -1,3 +1,8 @@
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+import dotenv from "dotenv";
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../../.env") });
 import Fastify from "fastify";
 import { ZodTypeProvider, serializerCompiler, validatorCompiler } from "fastify-type-provider-zod";
 import swagger from "@fastify/swagger";
@@ -7,7 +12,7 @@ import cookie from "@fastify/cookie";
 import rateLimit from "@fastify/rate-limit";
 import jwt from "@fastify/jwt";
 import rawBody from "fastify-raw-body";
-import { mustLoadConfig } from "@crm-psa/config";
+import { mustLoadConfig } from "@crm-psa/config"; // 開発(local/dev)では不足ENVは警告で既定値にフォールバック
 import metricsPlugin from "./plugins/metrics/index.js";
 import securityPlugin from "./plugins/security.js";
 import requestContextPlugin from "./plugins/request-context.js";
