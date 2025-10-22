@@ -59,6 +59,7 @@ export const buildServer = async () => {
 
   await fastify.register(swagger, {
     openapi: {
+      openapi: "3.1.0",
       info: {
         title: "CRM-PSA Integration API",
         version: "0.1.0",

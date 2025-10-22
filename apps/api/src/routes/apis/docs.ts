@@ -2,6 +2,7 @@ import type { FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { withOrgTransaction } from "../../lib/prisma.js";
 import { mustLoadConfig } from "@crm-psa/config";
+import { ClamAVScanner } from "@crm-psa/security";
 
 const paramsSchema = z.object({
   id: z.string().uuid()
@@ -196,6 +197,69 @@ const docRoutes: FastifyPluginAsync = async (fastify) => {
         risks: result.risks.length,
         actions: result.actions.length,
         issuesCreated
+      };
+    }
+  );
+
+  fastify.post(
+    "/:id/upload",
+    {
+      schema: {
+        tags: ["Docs"],
+        params: paramsSchema,
+        response: {
+          200: z.object({
+            uploaded: z.boolean(),
+            size: z.number()
+          })
+        }
+      }
+    },
+    async (request) => {
+      const orgId = request.orgId;
+      if (!orgId) throw fastify.httpErrors.badRequest("x-org-id header is required.");
+      const params = paramsSchema.parse(request.params);
+      const part = await request.file();
+      if (!part) {
+        throw fastify.httpErrors.badRequest("ファイルが指定されていません。");
+      }
+      if (!config.UPLOAD_ALLOWED_MIME.split(",").includes(part.mimetype)) {
+        throw fastify.httpErrors.unsupportedMediaType("このファイル形式はアップロードできません。");
+      }
+      const buffer = await part.toBuffer();
+      const maxBytes = config.UPLOAD_MAX_MB * 1024 * 1024;
+      if (buffer.length > maxBytes) {
+        throw fastify.httpErrors.payloadTooLarge("ファイルサイズが制限を超えています。");
+      }
+
+      const scanner = new ClamAVScanner({
+        host: "127.0.0.1",
+        port: 3310,
+        enabled: config.VIRUS_SCAN_ENABLED
+      });
+      await scanner.scan(buffer);
+
+      await withOrgTransaction(orgId, async (tx) => {
+        const doc = await tx.doc.findUnique({ where: { id: params.id } });
+        if (!doc) throw fastify.httpErrors.notFound("Doc not found.");
+        await tx.auditEvent.create({
+          data: {
+            orgId,
+            action: "doc.uploaded",
+            targetType: "doc",
+            targetId: doc.id,
+            metadata: {
+              filename: part.filename,
+              mimetype: part.mimetype,
+              size: buffer.length
+            }
+          }
+        });
+      });
+
+      return {
+        uploaded: true,
+        size: buffer.length
       };
     }
   );
