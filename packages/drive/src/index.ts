@@ -1,7 +1,7 @@
-import { z } from "zod";
+import { GoogleAuth } from "google-auth-library";
 import { drive_v3 } from "@googleapis/drive";
 import { docs_v1 } from "@googleapis/docs";
-import { GoogleAuth } from "google-auth-library";
+import { z } from "zod";
 
 export interface DriveConfig {
   rootFolderId?: string;
@@ -24,18 +24,18 @@ const templatePathSchema = z.object({
   date: z.string()
 });
 
-const buildDocName = (input: z.input<typeof templatePathSchema>) => {
-  const parsed = templatePathSchema.parse(input);
-  return `Clients/${parsed.account}/10_Project/Meetings/${parsed.date}_${parsed.title}.docx`;
-};
-
 const decodeServiceAccount = (key?: string) => {
   if (!key) return undefined;
   try {
     return JSON.parse(Buffer.from(key, "base64").toString("utf-8"));
-  } catch {
+  } catch (error) {
     throw new Error("GOOGLE_SA_KEY_JSON_BASE64 が不正です。");
   }
+};
+
+const buildDocName = (input: z.input<typeof templatePathSchema>) => {
+  const parsed = templatePathSchema.parse(input);
+  return `Clients/${parsed.account}/10_Project/Meetings/${parsed.date}_${parsed.title}.docx`;
 };
 
 export class DriveService {
@@ -52,8 +52,8 @@ export class DriveService {
         projectId: config.projectId,
         scopes: ["https://www.googleapis.com/auth/drive", "https://www.googleapis.com/auth/documents"]
       });
-      this.driveClient = new drive_v3.Drive({ auth: this.auth });
-      this.docsClient = new docs_v1.Docs({ auth: this.auth });
+      this.driveClient = new drive_v3.Drive({ auth: this.auth as unknown as string });
+      this.docsClient = new docs_v1.Docs({ auth: this.auth as unknown as string });
     } else {
       this.auth = null;
       this.driveClient = null;
@@ -86,7 +86,7 @@ export class DriveService {
     const file = await this.driveClient.files.copy({
       fileId: params.templateId ?? "root",
       requestBody: {
-        name: name.split("/").pop(),
+        name: name.split("/").pop() ?? params.title,
         parents: [folderId]
       }
     });
@@ -122,10 +122,13 @@ export class DriveService {
   async moveDoc(fileId: string, newFolderId: string): Promise<void> {
     if (!this.driveClient) {
       const existing = this.mockStore.get(fileId);
-      if (!existing) throw new Error("mock doc not found");
+      if (!existing) {
+        throw new Error("mock doc not found");
+      }
       existing.folderId = newFolderId;
       return;
     }
+
     await this.driveClient.files.update({
       fileId,
       addParents: newFolderId
@@ -136,6 +139,7 @@ export class DriveService {
     if (!this.driveClient) {
       return "mock-folder";
     }
+
     const segments = path.split("/").slice(0, -1);
     let parent = this.config.rootFolderId;
     for (const segment of segments) {
@@ -150,6 +154,7 @@ export class DriveService {
         parent = existing.id;
         continue;
       }
+
       const created = await this.driveClient.files.create({
         requestBody: {
           name: segment,
@@ -158,10 +163,16 @@ export class DriveService {
         },
         fields: "id"
       });
-      if (!created.data.id) throw new Error(`フォルダ ${segment} の作成に失敗しました`);
+
+      if (!created.data.id) {
+        throw new Error(`フォルダ ${segment} の作成に失敗しました。`);
+      }
       parent = created.data.id;
     }
-    if (!parent) throw new Error("ルートフォルダを特定できません。");
+
+    if (!parent) {
+      throw new Error("ルートフォルダを特定できません。");
+    }
     return parent;
   }
 }

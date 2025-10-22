@@ -1,0 +1,53 @@
+{
+  "title": "CRM-PSA Observability",
+  "timezone": "browser",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "API Latency p95",
+      "datasource": "Prometheus",
+      "fieldConfig": {
+        "defaults": {
+          "unit": "ms"
+        }
+      },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(api_latency_p95_bucket[5m])) by (le))",
+          "legendFormat": "p95"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Queue Lag Seconds",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "queue_lag_seconds",
+          "legendFormat": "lag"
+        }
+      ]
+    },
+    {
+      "type": "stat",
+      "title": "Pending Docs",
+      "targets": [
+        {
+          "expr": "pending_docs_count"
+        }
+      ]
+    },
+    {
+      "type": "timeseries",
+      "title": "Webhook Failure Rate",
+      "datasource": "Prometheus",
+      "targets": [
+        {
+          "expr": "webhook_failure_rate",
+          "legendFormat": "failure%"
+        }
+      ]
+    }
+  ]
+}
