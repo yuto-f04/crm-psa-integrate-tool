@@ -1,0 +1,37 @@
+{
+  "name": "crm-psa-integrate-tool",
+  "private": true,
+  "version": "0.1.0",
+  "description": "Monorepo for CRM/PSA integration tooling with automation and approvals",
+  "engines": {
+    "node": ">=20"
+  },
+  "packageManager": "pnpm@8.15.4",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "e2e": "turbo run e2e",
+    "format": "turbo run format",
+    "seed": "pnpm --filter @crm-psa/api db:seed",
+    "migrate": "pnpm --filter @crm-psa/api db:migrate",
+    "prepare": "husky install"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "^1.9.4",
+    "@types/node": "^20.11.30",
+    "husky": "^9.0.11",
+    "lint-staged": "^15.2.2",
+    "turbo": "^1.13.3",
+    "typescript": "^5.4.2"
+  },
+  "lint-staged": {
+    "*.{ts,tsx}": [
+      "pnpm lint"
+    ],
+    "*.{json,md,yml,yaml}": [
+      "pnpm format"
+    ]
+  }
+}

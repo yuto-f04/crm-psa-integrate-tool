@@ -1,0 +1,34 @@
+{
+  "name": "@crm-psa/http",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "lint": "biome lint src",
+    "format": "biome format --write src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@opentelemetry/api": "^1.7.0",
+    "p-retry": "^6.1.1",
+    "p-timeout": "^6.1.2",
+    "promise-timeout": "^1.3.0",
+    "rate-limiter-flexible": "^5.0.0",
+    "undici": "^6.14.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.2",
+    "vitest": "^1.5.0"
+  }
+}

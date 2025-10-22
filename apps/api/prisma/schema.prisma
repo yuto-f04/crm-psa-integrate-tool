@@ -1,0 +1,321 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum RoleType {
+  EXEC
+  PM
+  DEV
+  QA
+  CS
+  FIN
+  CLIENT
+}
+
+enum MeetingStatus {
+  CAPTURED
+  ROUTED
+  APPROVED
+  FINALIZED
+}
+
+enum DocStatus {
+  DRAFT
+  REVIEW
+  APPROVED
+  ARCHIVED
+}
+
+enum ActionStatus {
+  PROPOSED
+  APPROVED
+  DONE
+  BLOCKED
+}
+
+enum IssueStatus {
+  BACKLOG
+  IN_PROGRESS
+  REVIEW
+  DONE
+}
+
+enum OutboxStatus {
+  PENDING
+  PROCESSING
+  COMPLETED
+  FAILED
+  DEAD_LETTER
+}
+
+enum IntegrationType {
+  SLACK
+  DRIVE
+  TLDV
+  MF
+  GITHUB
+}
+
+model Org {
+  id             String          @id @default(uuid()) @db.Uuid
+  name           String
+  slug           String          @unique
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  users          User[]
+  roles          Role[]
+  sessions       Session[]
+  auditEvents    AuditEvent[]
+  meetings       Meeting[]
+  docs           Doc[]
+  decisions      Decision[]
+  assumptions    Assumption[]
+  risks          Risk[]
+  actions        Action[]
+  issues         Issue[]
+  outboxMessages OutboxMessage[]
+  settings       Setting[]
+  integrations   Integration[]
+  undoEvents     UndoEvent[]
+}
+
+model User {
+  id             String          @id @default(uuid()) @db.Uuid
+  orgId          String          @db.Uuid
+  org            Org             @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  email          String
+  name           String
+  locale         String?         @default("ja-JP")
+  hashedPassword String
+  avatarUrl      String?
+  lastLoginAt    DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  roles          Role[]
+  sessions       Session[]
+  auditEvents    AuditEvent[]
+
+  @@unique([orgId, email])
+}
+
+model Role {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @db.Uuid
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId    String   @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role      RoleType
+  createdAt DateTime @default(now())
+
+  @@unique([orgId, userId, role])
+}
+
+model Session {
+  id           String    @id @default(uuid()) @db.Uuid
+  orgId        String    @db.Uuid
+  org          Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  userId       String    @db.Uuid
+  user         User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token        String    @unique
+  refreshToken String?
+  expiresAt    DateTime
+  createdAt    DateTime  @default(now())
+  revokedAt    DateTime?
+}
+
+model AuditEvent {
+  id            String    @id @default(uuid()) @db.Uuid
+  orgId         String    @db.Uuid
+  org           Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  actorId       String?   @db.Uuid
+  actor         User?     @relation(fields: [actorId], references: [id])
+  action        String
+  targetType    String
+  targetId      String?
+  metadata      Json
+  ipAddress     String?
+  createdAt     DateTime  @default(now())
+}
+
+model Meeting {
+  id                 String         @id @default(uuid()) @db.Uuid
+  orgId              String         @db.Uuid
+  org                Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  title              String
+  agenda             String?
+  scheduledAt        DateTime?
+  recordedUrl        String?
+  tldvExternalId     String?        @unique
+  docsLink           String?
+  status             MeetingStatus  @default(CAPTURED)
+  routedClient       String?
+  routedProject      String?
+  routedConfidence   Float?
+  routedAt           DateTime?
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+  doc                Doc?
+  auditEvents        AuditEvent[]
+}
+
+model Doc {
+  id                String         @id @default(uuid()) @db.Uuid
+  orgId             String         @db.Uuid
+  org               Org            @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  meetingId         String?        @db.Uuid
+  meeting           Meeting?       @relation(fields: [meetingId], references: [id])
+  title             String
+  driveFileId       String?
+  driveFolderId     String?
+  status            DocStatus      @default(DRAFT)
+  approvalState     String         @default("pending")
+  approverId        String?        @db.Uuid
+  approvedAt        DateTime?
+  templateVersion   String?
+  summary           String?
+  createdAt         DateTime       @default(now())
+  updatedAt         DateTime       @updatedAt
+  decisions         Decision[]
+  assumptions       Assumption[]
+  risks             Risk[]
+  actions           Action[]
+}
+
+model Decision {
+  id            String   @id @default(uuid()) @db.Uuid
+  orgId         String   @db.Uuid
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  docId         String   @db.Uuid
+  doc           Doc      @relation(fields: [docId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  confidence    Float    @default(0.0)
+  requiresReview Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Assumption {
+  id            String   @id @default(uuid()) @db.Uuid
+  orgId         String   @db.Uuid
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  docId         String   @db.Uuid
+  doc           Doc      @relation(fields: [docId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  confidence    Float    @default(0.0)
+  requiresReview Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Risk {
+  id            String   @id @default(uuid()) @db.Uuid
+  orgId         String   @db.Uuid
+  org           Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  docId         String   @db.Uuid
+  doc           Doc      @relation(fields: [docId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  confidence    Float    @default(0.0)
+  severity      String? 
+  requiresReview Boolean @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
+
+model Action {
+  id            String        @id @default(uuid()) @db.Uuid
+  orgId         String        @db.Uuid
+  org           Org           @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  docId         String        @db.Uuid
+  doc           Doc           @relation(fields: [docId], references: [id], onDelete: Cascade)
+  title         String
+  description   String?
+  ownerId       String?       @db.Uuid
+  owner         User?         @relation(fields: [ownerId], references: [id])
+  dueDate       DateTime?
+  confidence    Float         @default(0.0)
+  status        ActionStatus  @default(PROPOSED)
+  issue         Issue?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+}
+
+model Issue {
+  id           String       @id @default(uuid()) @db.Uuid
+  orgId        String       @db.Uuid
+  org          Org          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  projectId    String?
+  actionId     String?      @db.Uuid
+  action       Action?      @relation(fields: [actionId], references: [id])
+  title        String
+  description  String?
+  status       IssueStatus  @default(BACKLOG)
+  sortOrder    Int          @default(0)
+  createdById  String?      @db.Uuid
+  createdBy    User?        @relation(fields: [createdById], references: [id])
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+  boardHistory Json?        @default("{}")
+}
+
+model OutboxMessage {
+  id              String       @id @default(uuid()) @db.Uuid
+  orgId           String       @db.Uuid
+  org             Org          @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  topic           String
+  payloadJson     Json
+  attempts        Int          @default(0)
+  nextRunAt       DateTime     @default(now())
+  status          OutboxStatus @default(PENDING)
+  idempotencyKey  String       @unique
+  createdAt       DateTime     @default(now())
+  updatedAt       DateTime     @updatedAt
+  lastError       String?
+}
+
+model Setting {
+  id        String   @id @default(uuid()) @db.Uuid
+  orgId     String   @db.Uuid
+  org       Org      @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  key       String
+  value     Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([orgId, key])
+}
+
+model Integration {
+  id        String           @id @default(uuid()) @db.Uuid
+  orgId     String           @db.Uuid
+  org       Org              @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  type      IntegrationType
+  status    String           @default("disconnected")
+  data      Json?
+  metadata  Json?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+
+  @@unique([orgId, type])
+}
+
+model UndoEvent {
+  id             String    @id @default(uuid()) @db.Uuid
+  orgId          String    @db.Uuid
+  org            Org       @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  initiatorId    String?   @db.Uuid
+  initiator      User?     @relation(fields: [initiatorId], references: [id])
+  targetTable    String
+  targetId       String
+  payload        Json
+  expiresAt      DateTime
+  createdAt      DateTime   @default(now())
+  reversedAt     DateTime?
+}

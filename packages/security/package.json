@@ -1,0 +1,35 @@
+{
+  "name": "@crm-psa/security",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "lint": "biome lint src",
+    "format": "biome format --write src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@crm-psa/core": "workspace:*",
+    "argon2": "^0.40.3",
+    "fast-redact": "^3.3.1",
+    "jsonwebtoken": "^9.0.2",
+    "nanoid": "^5.0.6",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/jsonwebtoken": "^9.0.6",
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.2",
+    "vitest": "^1.5.0"
+  }
+}

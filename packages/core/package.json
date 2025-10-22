@@ -1,0 +1,31 @@
+{
+  "name": "@crm-psa/core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "lint": "biome lint src",
+    "format": "biome format --write src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "date-fns": "^3.6.0",
+    "uuid": "^9.0.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.2",
+    "vitest": "^1.5.0"
+  }
+}

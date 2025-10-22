@@ -1,0 +1,15 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "tsBuildInfoFile": "tsconfig.tsbuildinfo",
+    "incremental": true
+  },
+  "include": [
+    "src/**/*",
+    "prisma/**/*.ts",
+    "vitest.config.ts",
+    "vitest.e2e.config.ts"
+  ]
+}

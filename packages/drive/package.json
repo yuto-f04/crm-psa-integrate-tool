@@ -1,0 +1,33 @@
+{
+  "name": "@crm-psa/drive",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.build.json",
+    "dev": "tsc -w -p tsconfig.json",
+    "lint": "biome lint src",
+    "format": "biome format --write src",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@googleapis/docs": "^2.0.0",
+    "@googleapis/drive": "^5.0.0",
+    "google-auth-library": "^9.8.0",
+    "p-retry": "^6.1.1",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "typescript": "^5.4.2",
+    "vitest": "^1.5.0"
+  }
+}
